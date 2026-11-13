@@ -3,9 +3,9 @@ name: Build Duck Power
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [main, master]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:
@@ -25,17 +25,32 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Configurar Gradle
+      - name: Configurar Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
 
-      - name: Dar permissão ao Gradle
-        run: chmod +x ./gradlew
+      - name: Localizar projeto
+        run: |
+          BUILD_FILE=$(find . -name build.gradle -o -name build.gradle.kts | head -n 1)
+
+          if [ -z "$BUILD_FILE" ]; then
+            echo "ERRO: build.gradle não encontrado!"
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$BUILD_FILE")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Projeto encontrado em: $PROJECT_DIR"
 
       - name: Compilar Duck Power
-        run: ./gradlew build
+        run: |
+          cd "$PROJECT_DIR"
+          gradle build --no-daemon
 
-      - name: Salvar arquivo JAR
+      - name: Salvar JAR
         uses: actions/upload-artifact@v4
         with:
           name: Duck-Power-1.21.1
-          path: build/libs/*.jar
+          path: '**/build/libs/*.jar'
+          if-no-files-found: error
